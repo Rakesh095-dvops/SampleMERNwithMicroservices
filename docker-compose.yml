@@ -29,7 +29,7 @@ services:
       - microservices-net
     environment:
       - PORT=3002
-      - MONGO_URI=mongodb+srv://mngadmin:iuC20DvYorfXKTdS@cluster0.i0pov.mongodb.net/userdb
+      - MONGO_URI=${MONGO_URI}
       - NODE_ENV=development
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
