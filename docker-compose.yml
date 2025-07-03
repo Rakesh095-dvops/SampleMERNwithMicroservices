@@ -1,0 +1,57 @@
+services:
+  # hello Service
+  hello-service:
+    #image: hello-service:latest
+    build:
+      context: ./backend/helloService
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    networks:
+      - microservices-net
+    environment:
+      - PORT=3001
+      - NODE_ENV=development
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+  # profile Service
+  profile-service:
+    #image: profile-service:latest
+    build:
+      context: ./backend/profileService
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    networks:
+      - microservices-net
+    environment:
+      - PORT=3002
+      - MONGO_URI=mongodb+srv://mngadmin:iuC20DvYorfXKTdS@cluster0.i0pov.mongodb.net/userdb
+      - NODE_ENV=development
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+
+# frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_HELLO_SERVICE_URL=http://hello-service:3001
+      - REACT_APP_PROFILE_SERVICE_URL=http://profile-service:3002
+      - NODE_ENV=development
+    networks:
+      - microservices-net
+
+# Network configuration		
+networks:
+  microservices-net:
+    driver: bridge
