@@ -31,7 +31,7 @@ Note: This will run the frontend in the development server. To run in production
 echo -n "mongodb+srv://user:pass@cluster.mongodb.net/db" | base64
 ```
 ```sh
-kubectl create ns smple-mern
+kubectl create ns sample-mern
 kubectl apply -f k8s-project/misc/mngdbsecret.yaml
 kubectl apply -f k8s-project/misc/configbackend.yaml
 kubectl apply -f k8s-project/deployments/backend-deployments.yaml
@@ -39,5 +39,5 @@ kubectl apply -f k8s-project/services/backend-services.yaml
 ```
 
 ```sh
-kubectl delete all --all -n smple-mern
+kubectl delete all --all -n sample-mern
 ```
