@@ -34,10 +34,14 @@ echo -n "mongodb+srv://user:pass@cluster.mongodb.net/db" | base64
 kubectl create ns sample-mern
 kubectl apply -f k8s-project/misc/mngdbsecret.yaml
 kubectl apply -f k8s-project/misc/configbackend.yaml
-kubectl apply -f k8s-project/deployments/backend-deployments.yaml
+kubectl apply -f k8s-project/deployments/backend-deployment.yaml
 kubectl apply -f k8s-project/services/backend-services.yaml
+kubectl apply -f k8s-project/deployments/frontend-deployment.yaml
+kubectl apply -f k8s-project/services/frontend-services.yaml 
 ```
 
 ```sh
-kubectl delete all --all -n sample-mern
+kubectl get all -n sample-mern -o wide
+minikube service frontend -n sample-mern
+
 ```

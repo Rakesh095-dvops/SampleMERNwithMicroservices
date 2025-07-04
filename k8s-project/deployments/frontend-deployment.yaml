@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
+  namespace: sample-mern
 spec:
   replicas: 1
   selector:
@@ -12,18 +13,23 @@ spec:
       labels:
         app: frontend
     spec:
+      imagePullSecrets:
+        - name: ecr-registry-secret
       containers:
         - name: frontend
-          image: your-frontend-image:latest
+          image: 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/samplmernfrontend:latest
           ports:
             - containerPort: 3000
           env:
-            - name: REACT_APP_BACKEND_URL
-              value: "http://backend:5000"
+            - name: REACT_APP_HELLO_SERVICE_URL
+              value: "http://hello-service:3001/"
+            - name: REACT_APP_PROFILE_SERVICE_URL
+              value: "http://profile-service:3002/"
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: "256Mi" # Request 256 Megabytes
+              cpu: "250m" # Request 1/4 of a CPU core
             limits:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: "1Gi" # Limit the pod to 1 Gigabyte
+              cpu: "500m" # Limit to 1/2 of a CPU core
+        

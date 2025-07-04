@@ -29,7 +29,7 @@ services:
       - microservices-net
     environment:
       - PORT=3002
-      - MONGO_URI=${MONGO_URI}
+      - MONGO_URI=mongodb+srv://mngadmin:iuC20DvYorfXKTdS@cluster0.i0pov.mongodb.net/userdb
       - NODE_ENV=development
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
@@ -45,8 +45,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_HELLO_SERVICE_URL=http://localhost:3001/
-      - REACT_APP_PROFILE_SERVICE_URL=http://localhost:3002
+      - REACT_APP_HELLO_SERVICE_URL=http://hello-service:3001/
+      - REACT_APP_PROFILE_SERVICE_URL=http://profile-service:3002/
       - NODE_ENV=development
     networks:
       - microservices-net
