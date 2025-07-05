@@ -43,5 +43,14 @@ kubectl apply -f k8s-project/services/frontend-services.yaml
 ```sh
 kubectl get all -n sample-mern -o wide
 minikube service frontend -n sample-mern
+kubectl port-forward svc/profile-service 3002:3002 -n sample-mern
+kubectl port-forward svc/profile-service 3002:3002 -n sample-mern
+kubectl delete all --all -n sample-mern
+```
+```sh 
+
+kubectl exec -it {front_end_pod} -n sample-mern -- /bin/sh
+curl http://health-service:3001
+curl http://profile-service:3002/fetchuser
 
 ```

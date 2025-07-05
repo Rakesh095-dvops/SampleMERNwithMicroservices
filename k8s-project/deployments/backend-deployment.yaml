@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: hello-service
   namespace: sample-mern
+  labels:
+    app: hello-service
 spec:
   replicas: 1
   selector:
