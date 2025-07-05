@@ -1,0 +1,71 @@
+# Global configuration
+global:
+  namespace: sample-mern
+  imagePullSecrets: ecr-registry-secret
+
+# Frontend configuration
+frontend:
+  replicaCount: 1
+  image:
+    repository: 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/samplmernfrontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: LoadBalancer
+    port: 3000
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+  env:
+    helloServiceUrl: "http://hello-service:3001"
+    profileServiceUrl: "http://profile-service:3002"
+
+# Backend services configuration
+backend:
+  helloService:
+    replicaCount: 1
+    image:
+      repository: 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/hello-service
+      tag: latest
+    service:
+      type: LoadBalancer
+      port: 3001
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 256Mi
+        cpu: 250m
+    port: 3001
+  
+  profileService:
+    replicaCount: 1
+    image:
+      repository: 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/profile-service
+      tag: latest
+    service:
+      type: LoadBalancer
+      port: 3002
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 256Mi
+        cpu: 250m
+    port: 3002
+    mongoUri:
+      secretName: mongo-secret
+      secretKey: MONGO_URI
+      value: "mongodb+srv://mngadmin:iuC20DvYorfXKTdS@cluster0.i0pov.mongodb.net/userdb"
+# ConfigMaps
+configMaps:
+  hello:
+    port: "3001"
+  profile:
+    port: "3002"

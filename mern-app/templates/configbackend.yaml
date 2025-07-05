@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hello-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  PORT: {{ .Values.configMaps.hello.port | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: profile-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  PORT: {{ .Values.configMaps.profile.port | quote }}

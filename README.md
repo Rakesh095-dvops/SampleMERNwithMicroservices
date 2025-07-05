@@ -1,7 +1,5 @@
 # Sample MERN with Microservices
 
-
-
 For `helloService`, create `.env` file with the content:
 ```bash
 PORT=3001
@@ -39,6 +37,10 @@ kubectl apply -f k8s-project/services/backend-services.yaml
 kubectl apply -f k8s-project/deployments/frontend-deployment.yaml
 kubectl apply -f k8s-project/services/frontend-services.yaml 
 ```
+```sh
+kubectl logs deployment/frontend -n sample-mern
+
+```
 
 ```sh
 kubectl get all -n sample-mern -o wide
@@ -50,7 +52,25 @@ kubectl delete all --all -n sample-mern
 ```sh 
 
 kubectl exec -it {front_end_pod} -n sample-mern -- /bin/sh
-curl http://health-service:3001
+kubectl exec -it $(kubectl get pods | grep frontend | awk '{print $1}') -- /bin/bash
+curl http://hello-service:3001/health
+curl http://hello-service:3001/
 curl http://profile-service:3002/fetchuser
 
+```
+
+# helm chart 
+```sh 
+#creation 
+helm create simple-mern-helm
+#install 
+helm install mern-app ./mern-app -n sample-mern --create-namespace
+#verify Manifest files
+helm get manifest mern-app -n sample-mern 
+#upgrade HelmChart
+helm upgrade mern-app ./mern-app -n sample-mern
+#to custom values 
+helm install mern-app ./mern-app -f my-values.yaml -n sample-mern
+#uninstall helm 
+helm uninstall mern-app -n sample-mern
 ```

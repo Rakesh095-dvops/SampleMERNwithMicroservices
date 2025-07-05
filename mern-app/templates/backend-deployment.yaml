@@ -1,0 +1,91 @@
+{{- $namespace := .Values.global.namespace -}}
+{{- $imagePullSecrets := .Values.global.imagePullSecrets -}}
+
+# Hello Service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-service
+  namespace: {{ $namespace }}
+  labels:
+    app: hello-service
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  replicas: {{ .Values.backend.helloService.replicaCount }}
+  selector:
+    matchLabels:
+      app: hello-service
+  template:
+    metadata:
+      labels:
+        app: hello-service
+    spec:
+      imagePullSecrets:
+        - name: {{ $imagePullSecrets }}
+      containers:
+        - name: hello-service
+          image: "{{ .Values.backend.helloService.image.repository }}:{{ .Values.backend.helloService.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.backend.helloService.port }}
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: hello-config
+                  key: PORT
+          resources:
+{{ toYaml .Values.backend.helloService.resources | indent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.backend.helloService.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.backend.helloService.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+# Profile Service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: profile-service
+  namespace: {{ $namespace }}
+  labels:
+    app: profile-service
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  replicas: {{ .Values.backend.profileService.replicaCount }}
+  selector:
+    matchLabels:
+      app: profile-service
+  template:
+    metadata:
+      labels:
+        app: profile-service
+    spec:
+      imagePullSecrets:
+        - name: {{ $imagePullSecrets }}
+      containers:
+        - name: profile-service
+          image: "{{ .Values.backend.profileService.image.repository }}:{{ .Values.backend.profileService.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.backend.profileService.port }}
+          env:
+            - name: MONGO_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backend.profileService.mongoUri.secretName }}
+                  key: {{ .Values.backend.profileService.mongoUri.secretKey }}
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: profile-config
+                  key: PORT
+          resources:
+{{ toYaml .Values.backend.profileService.resources | indent 12 }}

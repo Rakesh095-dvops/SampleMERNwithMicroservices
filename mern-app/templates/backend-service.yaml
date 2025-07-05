@@ -1,0 +1,33 @@
+{{- $namespace := .Values.global.namespace -}}
+
+# Hello Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-service
+  namespace: {{ $namespace }}
+spec:
+  selector:
+    app: hello-service
+  ports:
+    - protocol: TCP
+      port: {{ .Values.backend.helloService.service.port }}
+      targetPort: {{ .Values.backend.helloService.port }}
+  type: {{ .Values.backend.helloService.service.type }}
+
+# Profile Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: profile-service
+  namespace: {{ $namespace }}
+spec:
+  selector:
+    app: profile-service
+  ports:
+    - protocol: TCP
+      port: {{ .Values.backend.profileService.service.port }}
+      targetPort: {{ .Values.backend.profileService.port }}
+  type: {{ .Values.backend.profileService.service.type }}
