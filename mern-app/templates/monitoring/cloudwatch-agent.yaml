@@ -1,0 +1,87 @@
+{{- if .Values.cloudwatch.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudwatch-agent-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  cwagentconfig.json: |
+    {
+      "logs": {
+        "metrics_collected": {
+          "kubernetes": {
+            "metrics_collection_interval": 60,
+            "cluster_name": "{{ .Values.global.clusterName }}",
+            "metrics_collection_level": "container"
+          }
+        },
+        "force_flush_interval": 5,
+        "log_stream_name": "{{ .Values.global.namespace }}",
+        "log_group_name": "{{ .Values.cloudwatch.logGroupName }}"
+      }
+    }
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cloudwatch-agent
+  namespace: {{ .Values.global.namespace }}
+spec:
+  selector:
+    matchLabels:
+      name: cloudwatch-agent
+  template:
+    metadata:
+      labels:
+        name: cloudwatch-agent
+    spec:
+      serviceAccountName: {{ .Values.cloudwatch.serviceAccount.name }}
+      containers:
+      - name: cloudwatch-agent
+        image: amazon/cloudwatch-agent:latest
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 200m
+            memory: 200Mi
+        volumeMounts:
+        - name: cwagentconfig
+          mountPath: /etc/cwagentconfig
+        - name: rootfs
+          mountPath: /rootfs
+          readOnly: true
+        - name: dockersock
+          mountPath: /var/run/docker.sock
+          readOnly: true
+        - name: varlibdocker
+          mountPath: /var/lib/docker
+          readOnly: true
+        - name: sys
+          mountPath: /sys
+          readOnly: true
+        - name: devdisk
+          mountPath: /dev/disk
+          readOnly: true
+      volumes:
+      - name: cwagentconfig
+        configMap:
+          name: cloudwatch-agent-config
+      - name: rootfs
+        hostPath:
+          path: /
+      - name: dockersock
+        hostPath:
+          path: /var/run/docker.sock
+      - name: varlibdocker
+        hostPath:
+          path: /var/lib/docker
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: devdisk
+        hostPath:
+          path: /dev/disk
+{{- end }}

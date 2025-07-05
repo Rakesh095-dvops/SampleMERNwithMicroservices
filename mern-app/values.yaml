@@ -1,7 +1,18 @@
 # Global configuration
 global:
   namespace: sample-mern
+  region: ap-south-1
+  clusterName: my-eks-cluster
   imagePullSecrets: ecr-registry-secret
+
+# Autoscaling defaults
+autoscaling:
+  enabled: true
+  default:
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 70
 
 # Frontend configuration
 frontend:
@@ -23,6 +34,23 @@ frontend:
   env:
     helloServiceUrl: "http://hello-service:3001"
     profileServiceUrl: "http://profile-service:3002"
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
 
 # Backend services configuration
 backend:
@@ -42,6 +70,10 @@ backend:
         memory: 256Mi
         cpu: 250m
     port: 3001
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 3
   
   profileService:
     replicaCount: 1
@@ -63,9 +95,35 @@ backend:
       secretName: mongo-secret
       secretKey: MONGO_URI
       value: "mongodb+srv://mngadmin:iuC20DvYorfXKTdS@cluster0.i0pov.mongodb.net/userdb"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 3
+      metrics:
+      - type: External
+        external:
+          metric:
+            name: nodes_count
+            selector:
+              matchLabels:
+                service: profile-service
+          target:
+            type: AverageValue
+            averageValue: 1
 # ConfigMaps
 configMaps:
   hello:
     port: "3001"
   profile:
     port: "3002"
+# CloudWatch configuration
+cloudwatch:
+  enabled: true
+  namespace: MERNApp
+  logGroupName: /eks/mern-app-logs
+  retentionInDays: 7
+  serviceAccount:
+    create: true
+    name: cloudwatch-agent
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::975050024946:role/EKS-CloudWatch-Agent-Role
