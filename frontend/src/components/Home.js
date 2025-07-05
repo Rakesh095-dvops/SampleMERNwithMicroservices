@@ -7,7 +7,7 @@ function Home() {
 
   useEffect(() => {
     axios
-      .get(process.env.REACT_APP_HELLO_SERVICE_URL) // http://localhost:3001/
+      .get(`${process.env.REACT_APP_HELLO_SERVICE_URL}/`) // http://localhost:3001/
       .then((response) => {
         setMessage(response.data.msg);
       })
@@ -16,7 +16,7 @@ function Home() {
 
   useEffect(() => {
     axios
-      .get(`${process.env.REACT_APP_PROFILE_SERVICE_URL}fetchUser`) // http://localhost:3002/fetchUser"
+      .get(`${process.env.REACT_APP_PROFILE_SERVICE_URL}/fetchUser`) // http://localhost:3002/fetchUser
       .then((response) => {
         setProfile(response.data);
         
