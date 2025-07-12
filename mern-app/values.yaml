@@ -5,6 +5,16 @@ global:
   clusterName: my-eks-cluster
   imagePullSecrets: ecr-registry-secret
 
+# Environment: minikube or eks
+  environment: eks
+ # Registry configuration
+  registry:
+    # For EKS
+    eks:
+      url: 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv
+    # For Minikube - using local images
+    minikube:
+      url: ""  
 # Autoscaling defaults
 autoscaling:
   enabled: true
@@ -18,11 +28,11 @@ autoscaling:
 frontend:
   replicaCount: 1
   image:
-    repository: 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/samplmernfrontend
+    repository: "{{.Values.environment.eks.url}}/samplmernfrontend" #975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/samplmernfrontend
     tag: latest
     pullPolicy: IfNotPresent
   service:
-    type: LoadBalancer
+    type: LoadBalancer # Set to "LoadBalancer" for EKS, change to "NodePort" for minikube if needed
     port: 3000
   resources:
     requests:
@@ -57,10 +67,10 @@ backend:
   helloService:
     replicaCount: 1
     image:
-      repository: 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/hello-service
+      repository: "{{.Values.environment.eks.url}}/hello-service" #975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/hello-service
       tag: latest
     service:
-      type: LoadBalancer
+      type: LoadBalancer # Set to "LoadBalancer" for EKS, change to "ClusterIP" for minikube if needed
       port: 3001
     resources:
       requests:
@@ -78,10 +88,10 @@ backend:
   profileService:
     replicaCount: 1
     image:
-      repository: 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/profile-service
+      repository: "{{.Values.environment.eks.url}}/profile-service"    #975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/profile-service
       tag: latest
     service:
-      type: LoadBalancer
+      type: LoadBalancer # Set to "LoadBalancer" for EKS, change to "ClusterIP" for minikube if needed
       port: 3002
     resources:
       requests:
@@ -94,7 +104,7 @@ backend:
     mongoUri:
       secretName: mongo-secret
       secretKey: MONGO_URI
-      value: "mongodb+srv://mngadmin:iuC20DvYorfXKTdS@cluster0.i0pov.mongodb.net/userdb"
+      value: uZ29kYitzcnY6Ly9tbmdhZG1pbjppdUMyMER2WW9yZlhLVGRTQGNsdXN0ZXIwLmkwcG92Lm1vbmdvZGIubmV0L3VzZXJkYg==
     autoscaling:
       enabled: true
       minReplicas: 2
