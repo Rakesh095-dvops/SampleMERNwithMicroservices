@@ -27,6 +27,13 @@ module "vpc" {
   tags = var.tags
 }
 
+# Comment out the duplicate CloudWatch log group
+# resource "aws_cloudwatch_log_group" "eks" {
+#   name              = "/aws/eks/${var.cluster_name}/cluster"
+#   retention_in_days = 7
+# }
+
+
 # EKS Cluster
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
@@ -40,6 +47,9 @@ module "eks" {
 
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access  = true
+  
+  # Prevent creation of CloudWatch log group
+  create_cloudwatch_log_group = false
 
   # EKS Managed Node Group
   eks_managed_node_groups = {
@@ -65,26 +75,17 @@ module "eks" {
   tags = var.tags
 }
 
-# Create CloudWatch Log Group for EKS
-resource "aws_cloudwatch_log_group" "eks" {
-  name              = "/aws/eks/${var.cluster_name}/cluster"
-  retention_in_days = 7
+# Use existing ECR Repositories instead of creating new ones
+data "aws_ecr_repository" "hello_service" {
+  name = "${var.ecr_prefix}/hello-service"
 }
 
-# ECR Repositories for MERN app
-resource "aws_ecr_repository" "hello_service" {
-  name                 = "${var.ecr_prefix}/hello-service"
-  image_tag_mutability = "MUTABLE"
+data "aws_ecr_repository" "profile_service" {
+  name = "${var.ecr_prefix}/profile-service"
 }
 
-resource "aws_ecr_repository" "profile_service" {
-  name                 = "${var.ecr_prefix}/profile-service"
-  image_tag_mutability = "MUTABLE"
-}
-
-resource "aws_ecr_repository" "frontend" {
-  name                 = "${var.ecr_prefix}/samplmernfrontend"
-  image_tag_mutability = "MUTABLE"
+data "aws_ecr_repository" "frontend" {
+  name = "${var.ecr_prefix}/samplmernfrontend"
 }
 
 # IAM Role for Jenkins to access EKS
@@ -110,8 +111,50 @@ resource "aws_iam_role_policy_attachment" "eks_admin_policy" {
   role       = aws_iam_role.eks_jenkins_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "ecr_full_access" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonECR-FullAccess"
+# Custom ECR policy instead of AmazonECR-FullAccess
+resource "aws_iam_policy" "ecr_custom_policy" {
+  name        = "ECRCustomAccess"
+  description = "Custom policy for ECR access to specific repositories"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:CompleteLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
+          "ecr:BatchDeleteImage",
+          "ecr:DescribeRepositories",
+          "ecr:GetRepositoryPolicy",
+          "ecr:ListImages",
+          "ecr:ListTagsForResource"
+        ]
+        Resource = [
+          data.aws_ecr_repository.hello_service.arn,
+          data.aws_ecr_repository.profile_service.arn,
+          data.aws_ecr_repository.frontend.arn
+        ]
+      }
+    ]
+  })
+}
+
+# Replace ECR Full Access with custom policy
+resource "aws_iam_role_policy_attachment" "ecr_custom_policy_attachment" {
+  policy_arn = aws_iam_policy.ecr_custom_policy.arn
   role       = aws_iam_role.eks_jenkins_role.name
 }
 

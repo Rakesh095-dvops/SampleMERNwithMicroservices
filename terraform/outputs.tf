@@ -26,17 +26,17 @@ output "region" {
 
 output "ecr_hello_service_url" {
   description = "ECR repository URL for hello service"
-  value       = aws_ecr_repository.hello_service.repository_url
+  value       = data.aws_ecr_repository.hello_service.repository_url
 }
 
 output "ecr_profile_service_url" {
   description = "ECR repository URL for profile service"
-  value       = aws_ecr_repository.profile_service.repository_url
+  value       = data.aws_ecr_repository.profile_service.repository_url
 }
 
 output "ecr_frontend_url" {
   description = "ECR repository URL for frontend"
-  value       = aws_ecr_repository.frontend.repository_url
+  value       = data.aws_ecr_repository.frontend.repository_url
 }
 
 output "eks_jenkins_role_arn" {
