@@ -10,7 +10,7 @@ variable "project_name" {
 
 variable "cluster_name" {
   description = "Name of the EKS cluster"
-  default     = "my-eks-cluster"
+  default     = "mern-app-cluster"
 }
 
 variable "cluster_version" {
@@ -59,6 +59,11 @@ variable "node_group_desired_size" {
 variable "ecr_prefix" {
   description = "Prefix for ECR repositories"
   default     = "rikhrv"
+}
+
+variable "jenkins_role_arn" {
+  description = "ARN of the Jenkins IAM role/user that will assume the EKS admin role"
+  type        = string
 }
 
 variable "tags" {

@@ -48,3 +48,4 @@ docker push ******.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/profile-service:lates
 docker tag samplmernfrontend:latest ******.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/samplmernfrontend:latest
 docker push ******.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/samplmernfrontend:latest
 ```
+
