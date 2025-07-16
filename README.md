@@ -1,30 +1,10 @@
 ## Step 1: Set Up Jenkins on EC2
 
-### EC2 Instance Setup
-
-```bash
-# Launch an EC2 instance (t2.medium recommended)
-# Connect to your EC2 instance
-ssh -i "your-key.pem" ec2-user@your-ec2-public-dns
-```
-
 ### Jenkins Installation
 
+Install Jenkins by following below steps as provided in jenkins official guide (https://www.jenkins.io/doc/tutorials/tutorial-for-installing-jenkins-on-AWS/)
+
 ```bash
-# Install Java
-sudo amazon-linux-extras install java-openjdk11 -y
-
-# Add Jenkins repository
-sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
-sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
-
-# Install Jenkins
-sudo yum install jenkins -y
-
-# Start Jenkins
-sudo systemctl start jenkins
-sudo systemctl enable jenkins
-
 # Install Docker
 sudo yum install docker -y
 sudo systemctl start docker
