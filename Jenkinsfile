@@ -153,11 +153,8 @@ pipeline {
     }
     
     post {
-        success {
-            slackSend(color: "good", message: "SUCCESS: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}")
-        }
-        failure {
-            slackSend(color: "danger", message: "FAILED: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}")
-        }
+       always {
+           cleanWs()
+       }
     }
 }
