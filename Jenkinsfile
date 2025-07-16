@@ -2,86 +2,162 @@ pipeline {
     agent any
     
     environment {
-        AWS_ACCOUNT_ID = "975050024946"  // Your AWS account ID
-        AWS_REGION = 'ap-south-1' // Change as needed
-        ECR_REPO_BACKEND = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/backend"
-        ECR_REPO_FRONTEND = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/frontend"
+        AWS_REGION = 'ap-south-1'
+        AWS_ACCOUNT_ID = '975050024946'
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        BACKEND_ASG_NAME = 'mern-backend-asg'
+        FRONTEND_ASG_NAME = 'mern-frontend-asg'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        AWS_CREDENTIALS = credentials('aws-credentials')
+        GIT_REPO = 'https://github.com/Rakesh095-dvops/SampleMERNwithMicroservices.git'
+        CLOUDFLARE_DNS = 'your-backend-dns.example.com'
     }
     
     stages {
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
-                checkout scm
+                git branch: 'main', url: env.GIT_REPO
             }
         }
         
-        stage('ECR Authentication') {
+        stage('Build Docker Images') {
+            parallel {
+                stage('Build Hello Service') {
+                    steps {
+                        dir('backend/helloService') {
+                            sh 'docker build -t hello-service .'
+                            sh "docker tag hello-service:latest ${ECR_REGISTRY}/rikhrv/hello-service:latest"
+                        }
+                    }
+                }
+                
+                stage('Build Profile Service') {
+                    steps {
+                        dir('backend/profileService') {
+                            sh 'docker build -t profile-service .'
+                            sh "docker tag profile-service:latest ${ECR_REGISTRY}/rikhrv/profile-service:latest"
+                        }
+                    }
+                }
+                
+                stage('Build Frontend') {
+                    steps {
+                        dir('frontend') {
+                            sh 'docker build -t samplmernfrontend .'
+                            sh "docker tag samplmernfrontend:latest ${ECR_REGISTRY}/rikhrv/samplmernfrontend:latest"
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Login to ECR') {
             steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'your-existing-aws-credentials-id', // Use your existing credentials ID
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) {
+                sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+            }
+        }
+        
+        stage('Push Images to ECR') {
+            parallel {
+                stage('Push Hello Service') {
+                    steps {
+                        sh "docker push ${ECR_REGISTRY}/rikhrv/hello-service:latest"
+                    }
+                }
+                
+                stage('Push Profile Service') {
+                    steps {
+                        sh "docker push ${ECR_REGISTRY}/rikhrv/profile-service:latest"
+                    }
+                }
+                
+                stage('Push Frontend') {
+                    steps {
+                        sh "docker push ${ECR_REGISTRY}/rikhrv/samplmernfrontend:latest"
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy Infrastructure') {
+            steps {
+                script {
+                    def createNewInstances = input(
+                        id: 'createInstances', 
+                        message: 'Create new EC2 instances?', 
+                        parameters: [
+                            choice(
+                                choices: ['yes', 'no'],
+                                description: 'Create fresh instances or use existing',
+                                name: 'CREATE_INSTANCES'
+                            )
+                        ]
+                    )
+                    
+                    dir('deployment') {
+                        withAWS(credentials: env.AWS_CREDENTIALS, region: env.AWS_REGION) {
+                            if (createNewInstances == 'yes') {
+                                sh 'python3 deploy_ec2.py --create-new yes'
+                            } else {
+                                sh 'python3 deploy_ec2.py --create-new no'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy Backend Services') {
+            steps {
+                sshagent(['ec2-ssh-key']) {
                     sh """
-                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                        ssh -o StrictHostKeyChecking=no ec2-user@${env.BACKEND_INSTANCE_IP} << EOF
+                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        docker pull ${ECR_REGISTRY}/rikhrv/hello-service:latest
+                        docker pull ${ECR_REGISTRY}/rikhrv/profile-service:latest
+                        docker stop hello-service profile-service || true
+                        docker rm hello-service profile-service || true
+                        docker run -d --name hello-service -p 3001:3001 -e BACKEND_DNS=${env.CLOUDFLARE_DNS} ${ECR_REGISTRY}/rikhrv/hello-service:latest
+                        docker run -d --name profile-service -p 3002:3002 -e BACKEND_DNS=${env.CLOUDFLARE_DNS} ${ECR_REGISTRY}/rikhrv/profile-service:latest
+                        EOF
                     """
                 }
             }
         }
         
-        stage('Build Backend Image') {
+        stage('Deploy Frontend') {
             steps {
-                dir('backend') {
-                    sh 'docker build -t ${ECR_REPO_BACKEND}:${BUILD_NUMBER} .'
-                }
-            }
-        }
-        
-        stage('Build Frontend Image') {
-            steps {
-                dir('frontend') {
-                    sh 'docker build -t ${ECR_REPO_FRONTEND}:${BUILD_NUMBER} .'
-                }
-            }
-        }
-        
-        stage('Push to ECR') {
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'your-existing-aws-credentials-id', // Use your existing credentials ID
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) {
+                sshagent(['ec2-ssh-key']) {
                     sh """
-                        docker push ${ECR_REPO_BACKEND}:${BUILD_NUMBER}
-                        docker push ${ECR_REPO_FRONTEND}:${BUILD_NUMBER}
+                        ssh -o StrictHostKeyChecking=no ec2-user@${env.FRONTEND_INSTANCE_IP} << EOF
+                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        docker pull ${ECR_REGISTRY}/rikhrv/samplmernfrontend:latest
+                        docker stop frontend || true
+                        docker rm frontend || true
+                        docker run -d --name frontend -p 3000:3000 -e REACT_APP_BACKEND_URL=http://${env.CLOUDFLARE_DNS} ${ECR_REGISTRY}/rikhrv/samplmernfrontend:latest
+                        EOF
                     """
                 }
             }
         }
         
-        stage('Deploy') {
+        stage('Update Cloudflare DNS') {
             steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'your-existing-aws-credentials-id', // Use your existing credentials ID
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) {
-                    sh """
-                        python3 deployment/deploy_backend.py --image ${ECR_REPO_BACKEND}:${BUILD_NUMBER}
-                        python3 deployment/deploy_frontend.py --image ${ECR_REPO_FRONTEND}:${BUILD_NUMBER}
-                    """
+                script {
+                    // This would use Cloudflare API to update DNS records
+                    // Implementation depends on your Cloudflare setup
+                    echo "Updating Cloudflare DNS to point to backend instances"
                 }
             }
         }
     }
     
     post {
-        always {
-            sh 'docker system prune -af'
+        success {
+            slackSend(color: "good", message: "SUCCESS: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+        }
+        failure {
+            slackSend(color: "danger", message: "FAILED: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}")
         }
     }
 }

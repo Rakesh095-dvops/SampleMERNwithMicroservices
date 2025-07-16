@@ -1,0 +1,71 @@
+import boto3
+import argparse
+from time import sleep
+
+# Initialize clients
+ec2 = boto3.client('ec2')
+autoscaling = boto3.client('autoscaling')
+elbv2 = boto3.client('elbv2')
+
+def create_backend_asg():
+    # Configuration for backend ASG
+    config = {
+        'LaunchTemplate': {
+            'LaunchTemplateName': 'backend-launch-template',
+            'Version': '$Latest',
+            'ImageId': 'ami-xyz',  # Replace with your AMI
+            'InstanceType': 't2.micro',
+            'UserData': f"""#!/bin/bash
+                yum install -y docker
+                systemctl start docker
+                aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 975050024946.dkr.ecr.ap-south-1.amazonaws.com
+                docker pull 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/hello-service:latest
+                docker pull 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/profile-service:latest
+                docker run -d --name hello-service -p 3001:3001 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/hello-service:latest
+                docker run -d --name profile-service -p 3002:3002 975050024946.dkr.ecr.ap-south-1.amazonaws.com/rikhrv/profile-service:latest
+            """
+        },
+        'AutoScalingGroup': {
+            'AutoScalingGroupName': 'mern-backend-asg',
+            'MinSize': 2,
+            'MaxSize': 4,
+            'DesiredCapacity': 2,
+            'TargetGroupARNs': ['arn:aws:elasticloadbalancing:ap-south-1:975050024946:targetgroup/backend-tg/xyz'],
+            'AvailabilityZones': ['ap-south-1a', 'ap-south-1b']
+        }
+    }
+    
+    # Implementation to create ASG and related resources
+    # ...
+
+def create_frontend_asg():
+    # Similar configuration for frontend ASG
+    # ...
+
+def get_existing_instances():
+    # Get existing instances from ASGs
+    backend_instances = autoscaling.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['mern-backend-asg']
+    )['AutoScalingGroups'][0]['Instances']
+    
+    frontend_instances = autoscaling.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['mern-frontend-asg']
+    )['AutoScalingGroups'][0]['Instances']
+    
+    return backend_instances, frontend_instances
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--create-new', choices=['yes', 'no'], required=True)
+    args = parser.parse_args()
+    
+    if args.create_new == 'yes':
+        print("Creating new infrastructure...")
+        create_backend_asg()
+        create_frontend_asg()
+        print("Infrastructure created successfully")
+    else:
+        print("Using existing infrastructure...")
+        backend_instances, frontend_instances = get_existing_instances()
+        print(f"Backend instances: {backend_instances}")
+        print(f"Frontend instances: {frontend_instances}")

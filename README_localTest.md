@@ -300,7 +300,60 @@ aws iam add-role-to-instance-profile \
 
 These additional steps ensure that your externally hosted Jenkins can securely authenticate with and access private ECR repositories, while the EC2 instances deployed in AWS can also access those repositories using their IAM roles.
 
-Similar code found with 2 license types
+GitHub Webhook Setup
+To trigger Jenkins on git commit:
+
+In your GitHub repository, go to Settings > Webhooks
+
+Add a new webhook with:
+
+Payload URL: https://your-jenkins-url/github-webhook/
+
+Content type: application/json
+
+Events: Just the push event
+
+Active: checked
+
+In Jenkins:
+
+Install the "GitHub plugin"
+
+Configure your job to "Build when a change is pushed to GitHub"
+
+Add the GitHub webhook secret if using secured webhooks
+
+Notes:
+You'll need to set up the following credentials in Jenkins:
+
+AWS credentials (access key and secret key)
+
+Docker Hub credentials (if needed)
+
+SSH key for EC2 instances
+
+The Boto3 script is simplified. You'll need to:
+
+Add proper error handling
+
+Implement complete ASG creation logic
+
+Add security group configuration
+
+Set up proper IAM roles for instances
+
+The deployment assumes you have:
+
+An existing VPC with proper subnets
+
+Security groups configured
+
+An Application Load Balancer set up
+
+For Cloudflare DNS updates, you would need to implement the API calls based on your Cloudflare setup.
+
+The Jenkinsfile includes parallel stages for building and pushing images to optimize pipeline speed.
+
 
 
 
